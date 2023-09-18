@@ -1,0 +1,16 @@
+{
+    "program": {
+        "name": "Myproject",
+        "saved_path": "./workspace"
+    },
+    "objects": [
+        {
+            "name": "testNode",
+            "clazz": "test.test_modules.TestNode",
+            "is_core": true,
+            "args": {
+                "msg": "I am testNode."
+            }
+        }
+    ]
+}
