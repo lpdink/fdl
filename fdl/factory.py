@@ -8,7 +8,7 @@ import inspect
 import re
 from types import FunctionType
 
-__all__ = ["register", "register_as", "register_all"]
+__all__ = ["register", "register_as"]
 
 
 class Factory:
@@ -87,8 +87,14 @@ class Factory:
             self._name2obj[obj["name"]] = new_obj
             self._obj2name[new_obj] = obj["name"]
 
+        # 反转core_objs
+        self._core_objs.reverse()
+
     def get_core_objs(self):
         return self._core_objs
+
+    def get_name2clazz(self):
+        return self._name2clazz
 
     def register(self, name, clazz):
         if name not in self._name2clazz.keys():

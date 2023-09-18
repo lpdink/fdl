@@ -1,25 +1,19 @@
 import fdl._handle_exception as exception_handle
 from fdl.helper import WorkFolderHelper, BindModuleHelper
-from fdl.common.log import Logger
-from fdl.common.config import DictConfig
+from fdl.common import Logger, DictConfig
 from fdl.factory import Factory
 
 
 def parse_args(args):
     program_config_path = args.program_config_path
     func_to_run = args.func_to_run
-    bind_module_path = args.bind
 
-    return program_config_path, func_to_run, bind_module_path
+    return program_config_path, func_to_run
 
 
 def run(args):
-    program_config_path, func_to_run, bind_module_path = parse_args(args)
+    program_config_path, func_to_run = parse_args(args)
     exception_handle.check_config_file(program_config_path)
-    if bind_module_path is not None:
-        bind_helper = BindModuleHelper(bind_module_path)
-        bind_helper.bind()
-    # 尝试bind临时指定的module
 
     # 读取配置文件
     program_config = DictConfig()
@@ -44,12 +38,13 @@ def run(args):
             )
         else:
             func = getattr(obj, func_to_run)
-            try:
-                func()
-            except Exception as e:
-                raise RuntimeError(
-                    f"exec object {obj._init_config.name} core method {func_to_run} failed. error msg : {e}"
-                )
+            func()
+            # try:
+            #     func()
+            # except Exception as e:
+            #     raise RuntimeError(
+            #         f"exec object {obj._init_config.name} core method {func_to_run} failed. error msg : {e}"
+            #     )
 
     # 执行结束
     print("all program done.")

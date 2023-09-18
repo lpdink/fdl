@@ -1,3 +1,8 @@
 .vscode
 __pycache__
 workspace
+dist
+fdl.egg-info
+fdl_space
+output.json
+test

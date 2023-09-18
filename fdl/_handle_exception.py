@@ -37,7 +37,7 @@ def check_value_in_dict_isinstance(key_str, father_clazz, dic, not_empty=False):
 
 
 def check_objects(objects):
-    """检查config的Objects中存在is_core的对象。且所有对象都有name和clazz两个属性且不为空且name不重复
+    """检查所有对象都有name和clazz两个属性且不为空且name不重复
 
     Args:
         objects (_type_): _description_
@@ -59,16 +59,10 @@ def check_objects(objects):
             if per_name in element_names:
                 raise ValueError(f"objects name '{per_name}' have repeats")
             element_names.append(per_name)
-            if "is_core" in element.keys() and element["is_core"]:
-                find_core = True
         else:
             raise TypeError(
                 f"element in config file's objects list expected to be dict, got{type(element)}, element:{element}"
             )
-    if not find_core:
-        raise RuntimeError(
-            "config file's objects expected have one and only one 'is_core' object."
-        )
 
 
 def check_config_file(config_file_path: str):

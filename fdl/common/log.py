@@ -26,14 +26,25 @@ class ColorFormatter(FatherLog.Formatter):
 
 
 class Logger(FatherLog.Logger):
-    def __init__(self, level=FatherLog.INFO) -> None:
+    instance = None
+    init = False
+
+    def __new__(cls):
+        if Logger.instance is None:
+            Logger.instance = super().__new__(cls)
+        return Logger.instance
+
+    def __init__(self) -> None:
+        if Logger.init:
+            return
         super().__init__("logger", 0)
         self.fmt = "[%(asctime)s %(levelname)s %(pathname)s:%(lineno)d] %(message)s"
         stream_handler = FatherLog.StreamHandler()
         color_formater = ColorFormatter(self.fmt, True)
         stream_handler.setFormatter(color_formater)
-        stream_handler.setLevel(level)
+        stream_handler.setLevel(FatherLog.INFO)
         self.addHandler(stream_handler)
+        Logger.init = True
 
     def set_log_path(self, log_folder, log_file_name="log.txt"):
         """设置日志文件的保存位置，将保存在log_folder/log.txt下

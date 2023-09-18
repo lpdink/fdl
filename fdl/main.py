@@ -1,4 +1,3 @@
-import argparse
 from .ui import TerminalUI
 
 
