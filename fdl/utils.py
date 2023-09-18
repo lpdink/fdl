@@ -1,6 +1,48 @@
 import os
 import shutil
 import json
+import inspect
+from copy import deepcopy
+
+FDL_OBJ = {
+    "name": "NotSet",
+    "clazz": "NotSet",
+    "is_core": False,
+}
+
+
+def is_json_serializable(obj):
+    if isinstance(obj, (dict, list, tuple, str, int, float, bool, type(None))):
+        return True
+    elif hasattr(obj, "__dict__"):
+        return True
+    else:
+        return False
+
+
+def gen_clazz_example_obj(clazz):
+    obj_config = deepcopy(FDL_OBJ)
+    obj_config["name"] = f"{clazz.__name__}.__example_obj__"
+    obj_config["clazz"] = clazz.__name__
+    def_path = inspect.getabsfile(clazz)
+    obj_config["def_path"] = def_path
+    # 获取clazz的构造函数签名
+    sign = inspect.signature(clazz)
+    args = dict()
+    for parm_name, parm_obj in sign.parameters.items():
+        # 有default先default，没有就填注解，再没有就写一般
+        # default必须可以被json序列化
+        if parm_obj.default is not inspect._empty and is_json_serializable(
+            parm_obj.default
+        ):
+            args[parm_name] = parm_obj.default
+        elif parm_obj.annotation is not inspect._empty:
+            args[parm_name] = str(parm_obj.annotation)
+        else:
+            args[parm_name] = "Todo Here!"
+
+    obj_config["args"] = args
+    return obj_config
 
 
 def assert_file_exists(file_path: str):

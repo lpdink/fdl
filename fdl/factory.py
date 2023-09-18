@@ -110,6 +110,12 @@ class Factory:
                 f"class '{clazz}' already register with name {self._clazz2name[clazz]}"
             )
 
+    def print_register_clazzs(self):
+        print("=============name:clazz=============")
+        for name, clazz in self._name2clazz.items():
+            print(f"{name}  :  {clazz}")
+        print("====================================")
+
 
 def register(obj):
     factory = Factory()

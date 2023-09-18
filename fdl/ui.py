@@ -17,17 +17,7 @@ class TerminalUI:
     def show(self):
         pass
 
-    def get_request(self):
-        self._parser.add_argument(
-            "-v",
-            "--version",
-            required=False,
-            default=False,
-            action="store_true",
-            help="show fdl version",
-        )
-        sub_parser = self._parser.add_subparsers()
-        # subparser: run
+    def _add_run(self, sub_parser):
         parser_run = sub_parser.add_parser("run", help="run tasks with json file")
         parser_run.add_argument(
             "func_to_run", type=str, help="function you want to run."
@@ -45,7 +35,8 @@ class TerminalUI:
             default=None,
         )
         parser_run.set_defaults(func=core.run)
-        # subparser: gen
+
+    def _add_gen(self, sub_parser):
         parser_gen = sub_parser.add_parser(
             "gen", help="generate json with clazzs, support partly name."
         )
@@ -70,6 +61,44 @@ class TerminalUI:
             help="output json file path",
         )
         parser_gen.set_defaults(func=core.gen_json)
+
+    def _add_show(self, sub_parser):
+        show_parser = sub_parser.add_parser(
+            "show",
+            help="show all modules registered, or detail info about some modules.",
+        )
+        show_parser.add_argument(
+            "clazzs",
+            nargs="*",
+            help="modules you want to show detail info. if not set, show all registered modules' name",
+        )
+        show_parser.add_argument(
+            "-b",
+            "--bind",
+            type=str,
+            nargs="+",
+            help="temp bind python file to register modules.",
+            required=False,
+            default=None,
+        )
+        show_parser.set_defaults(func=core.show)
+
+    def get_request(self):
+        self._parser.add_argument(
+            "-v",
+            "--version",
+            required=False,
+            default=False,
+            action="store_true",
+            help="show fdl version",
+        )
+        sub_parser = self._parser.add_subparsers()
+        # subparser: run
+        self._add_run(sub_parser)
+        # subparser: gen
+        self._add_gen(sub_parser)
+        # subparser: show
+        self._add_show(sub_parser)
         # TODO: 其他命令,考虑协议与模块的恰当嵌入.
         self._args = self._parser.parse_args()
 
