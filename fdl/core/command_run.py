@@ -2,6 +2,7 @@ import fdl._handle_exception as exception_handle
 from fdl.helper import WorkFolderHelper, BindModuleHelper
 from fdl.common import Logger, DictConfig
 from fdl.factory import Factory
+from fdl.utils import copy_if_not_exists
 
 
 def parse_args(args):
@@ -26,6 +27,8 @@ def run(args):
     # 创建工作区级log
     logging = Logger()
     logging.set_log_path(work_folder_helper.work_dir)
+    # 备份配置文件
+    copy_if_not_exists(program_config_path, logging.get_work_dir())
     # 工厂构造对象
     factory = Factory()
     factory.create(program_config)

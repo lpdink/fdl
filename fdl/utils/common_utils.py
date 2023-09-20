@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import json
 import inspect
@@ -11,19 +12,30 @@ FDL_OBJ = {
 }
 
 
+def setup_global_seed(seed):
+    if seed is not None:
+        import torch
+        import numpy as np
+        import random
+
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.backends.cudnn.deterministic = True
+
+
 def is_json_serializable(obj):
     if isinstance(obj, (dict, list, tuple, str, int, float, bool, type(None))):
-        return True
-    elif hasattr(obj, "__dict__"):
         return True
     else:
         return False
 
 
-def gen_clazz_example_obj(clazz):
+def gen_clazz_example_obj(clazz, clazz_name):
     obj_config = deepcopy(FDL_OBJ)
     obj_config["name"] = f"{clazz.__name__}.__example_obj__"
-    obj_config["clazz"] = clazz.__name__
+    obj_config["clazz"] = clazz_name
     def_path = inspect.getabsfile(clazz)
     obj_config["def_path"] = def_path
     # 获取clazz的构造函数签名
@@ -85,7 +97,8 @@ def copy_if_not_exists(file_path: str, dst_dir: str):
     dst_file_path = os.path.join(dst_dir, file_name)
     if os.path.exists(dst_file_path):
         raise FileExistsError(f"copy file failed. {dst_file_path} already exists.")
-    shutil.copyfile(file_path, dst_dir)
+    # breakpoint()
+    shutil.copyfile(file_path, dst_file_path)
     return True
 
 

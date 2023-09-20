@@ -63,5 +63,8 @@ class Logger(FatherLog.Logger):
         file_handler.setLevel(FatherLog.DEBUG)
         self.addHandler(file_handler)
 
+    def get_work_dir(self):
+        return self.log_folder
+
 
 FDL_LOG = Logger()

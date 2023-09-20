@@ -14,9 +14,6 @@ class TerminalUI:
         self._parser = argparse.ArgumentParser()
         self._args = None
 
-    def show(self):
-        pass
-
     def _add_run(self, sub_parser):
         parser_run = sub_parser.add_parser("run", help="run tasks with json file")
         parser_run.add_argument(
@@ -99,7 +96,7 @@ class TerminalUI:
         self._add_gen(sub_parser)
         # subparser: show
         self._add_show(sub_parser)
-        # TODO: 其他命令,考虑协议与模块的恰当嵌入.
+
         self._args = self._parser.parse_args()
 
     def run_request(self):
@@ -107,11 +104,13 @@ class TerminalUI:
             show_version()
             return
         # 尝试绑定临时模块
-        if self._args.bind is not None:
+        if getattr(self._args, "bind", None) is not None:
             for bind_path in self._args.bind:
                 bind_helper = BindModuleHelper(bind_path)
                 bind_helper.bind()
-        if self._args is not None and hasattr(self._args, "func"):
+        if hasattr(self._args, "func"):
+            import fdl.modules
+
             self._args.func(self._args)
         else:
-            raise RuntimeError("run_request failed: request args not set.")
+            self._parser.print_help()

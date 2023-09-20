@@ -6,9 +6,8 @@ register_all
 """
 import inspect
 import re
-from types import FunctionType
 
-__all__ = ["register", "register_as"]
+__all__ = ["register", "register_as", "register_clazz_as_name"]
 
 
 class Factory:
@@ -30,11 +29,48 @@ class Factory:
         self._core_objs = list()
         Factory.init = True
 
+    def _replace_place_holder_with_dict_get(self, command):
+        # Define the regular expression pattern to match "${obj}"
+        pattern = r"\${(.*?)}"
+
+        # Define the replacement function
+        def replace(match):
+            obj_name = match.group(1)
+            if not obj_name in self._name2obj.keys():
+                raise KeyError(
+                    f"{obj_name} not found in objs_pool, this may caused by wrong words in json or wrong objs order. Be careful that father obj should in front."
+                )
+            return f"_name2obj.get('{obj_name}')"
+            # return q_dict_name + "[" + obj + "]"
+
+        # Use re.sub() to replace all occurrences of the pattern with the replacement function
+        result = re.sub(pattern, replace, command)
+
+        return result
+
+    def _exec_command_to_get_obj(self, command_str):
+        command_pattern = "@@(.*?)@@"
+        sub_commands = re.findall(command_pattern, command_str)
+        if len(sub_commands) > 1:
+            raise RuntimeError(
+                f"Only allowed one exec(...) in args value, got {command_str}"
+            )
+        sub = sub_commands[0]
+        sub = f"ret={sub}"
+        exec_rst = dict()
+        try:
+            exec(sub, {"_name2obj": self._name2obj}, exec_rst)
+        except Exception as e:
+            raise RuntimeError(f"exec sub command {sub} failed. msg:{e}") from e
+        if "ret" in exec_rst.keys():
+            return exec_rst["ret"]
+        else:
+            raise RuntimeError("Never run this line.")
+
     def _replace_args(self, obj):
         obj_name = obj["name"]
         obj_args = list()
         obj_args = obj.get("args", obj_args)
-        pattern = r"\${(.+?)}"
         if isinstance(obj_args, list):
             obj_args_iter = enumerate(obj_args)
         elif isinstance(obj_args, dict):
@@ -45,14 +81,27 @@ class Factory:
             )
 
         for arg_idx, arg_value in obj_args_iter:
-            match = re.search(pattern, str(arg_value))
-            if match:
-                match_str = match.group(1)
-                # 匹配到的obj必须已经被创建
-                assert (
-                    match_str in self._name2obj.keys()
-                ), f"{match_str} not found in objs_pool, this may caused by wrong words in json or wrong objs order. Be careful that father obj should in front."
-                obj_args[arg_idx] = self._name2obj[match_str]
+            # 1. 替换+执行：@@str(${obj_name})@@+@@"hello world！"@@-》先替换，再执行
+            # 2. 替换 ${obj_name}-》替换成对象
+            # 3. 字面量 123->可以走2的逻辑，保持不变。
+            if isinstance(arg_value, str):
+                match = re.search(r"\${(.+?)}", str(arg_value))
+                if arg_value.count("@@") >= 2:
+                    # 解析命令并执行
+                    command_str = self._replace_place_holder_with_dict_get(arg_value)
+                    target_obj = self._exec_command_to_get_obj(command_str)
+                elif match:
+                    # 直接替换
+                    match_str = match.group(1)
+                    assert (
+                        match_str in self._name2obj.keys()
+                    ), f"{match_str} not found in objs_pool, this may caused by wrong words in json or wrong objs order. Be careful that father obj should in front."
+                    target_obj = self._name2obj[match_str]
+                else:
+                    target_obj = arg_value
+            else:
+                target_obj = arg_value
+            obj_args[arg_idx] = target_obj
         return obj_args
 
     def create(self, dic: dict):
@@ -119,13 +168,29 @@ class Factory:
 
 def register(obj):
     factory = Factory()
-    if isinstance(obj, FunctionType) or inspect.isclass(obj):
+    if inspect.isclass(obj):
         module_name = inspect.getmodule(obj).__name__
         register_name = f"{module_name}.{obj.__name__}"
         factory.register(register_name, obj)
         return obj
     else:
         raise RuntimeError(f"Not supported type {type(obj)} for register")
+
+
+def register_clazz_as_name(clazz, name):
+    factory = Factory()
+    if isinstance(name, str):
+        factory.register(name, clazz)
+    else:
+        raise RuntimeError(f"Not supported type {type(name)} to register")
+
+
+def register_module_clazzs(module, top_name):
+    for clazz_name in dir(module):
+        if not clazz_name.startswith("_"):
+            clazz = getattr(module, clazz_name)
+            if inspect.isclass(clazz):
+                register_clazz_as_name(clazz, f"{top_name}.{clazz_name}")
 
 
 def register_as(name):

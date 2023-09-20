@@ -3,8 +3,6 @@ from .ui import TerminalUI
 
 def main():
     ui = TerminalUI()
-    # 展示UI
-    ui.show()
     # 获取用户输入到程序
     ui.get_request()
     # 按照用户输入执行
