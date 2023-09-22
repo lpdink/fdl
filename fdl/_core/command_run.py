@@ -1,22 +1,19 @@
-import fdl._handle_exception as exception_handle
-from fdl.helper import WorkFolderHelper, BindModuleHelper
-from fdl.common import Logger, DictConfig, print_warning
-from fdl.factory import Factory
+from fdl._common import Logger, Config
+from fdl._factory import Factory
 from fdl.utils import copy_if_not_exists
 
 
-def parse_args(args):
-    program_config_path = args.program_config_path
-    return program_config_path
+def check_config_file(json_path):
+    pass
 
 
 def run(args):
-    program_config_path = parse_args(args)
-    exception_handle.check_config_file(program_config_path)
+    json_path = args.run_json_path
+    check_config_file(json_path)
 
     # 读取配置文件
-    program_config = DictConfig()
-    program_config.read(program_config_path)
+    program_config = Config()
+    program_config.read(json_path)
     # 创建工作区
     work_folder_helper = WorkFolderHelper()
     work_folder_helper.create(
@@ -26,14 +23,16 @@ def run(args):
     logging = Logger()
     logging.set_log_path(work_folder_helper.work_dir)
     # 备份配置文件
-    copy_if_not_exists(program_config_path, logging.get_work_dir())
+    copy_if_not_exists(json_path, logging.get_work_dir())
     # 工厂构造对象
     factory = Factory()
     factory.create(program_config)
     # 执行核心对象的func_to_run
     core_objs = factory.get_core_objs()
-    if len(core_objs)==0:
-        print("No command config in json. Nothing to run. Try set command attr to top objects.")
+    if len(core_objs) == 0:
+        print(
+            "No command config in json. Nothing to run. Try set command attr to top objects."
+        )
     for obj in core_objs:
         assert hasattr(obj, "_init_config")
         assert hasattr(obj._init_config, "command")

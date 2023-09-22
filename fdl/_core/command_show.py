@@ -1,6 +1,6 @@
 import inspect
 import json
-from fdl.factory import Factory
+from fdl._factory import Factory
 from fdl.utils import gen_clazz_example_obj
 
 

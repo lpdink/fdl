@@ -1,17 +1,17 @@
 import json
 
 
-class DictConfig(dict):
+class Config(dict):
     @classmethod
     def from_dict(cls, **kwargs) -> None:
         config = cls()
         for k, v in kwargs.items():
             if isinstance(v, dict):
-                v = DictConfig.from_dict(**v)
+                v = Config.from_dict(**v)
             if isinstance(v, list):
                 for index, item in enumerate(v):
                     if isinstance(item, dict):
-                        v[index] = DictConfig.from_dict(**item)
+                        v[index] = Config.from_dict(**item)
             config[k] = v
         return config
 
@@ -20,14 +20,14 @@ class DictConfig(dict):
             content = file.read()
         data = json.loads(content)
         if isinstance(data, list):
-            data = {"objects":data}
+            data = {"objects": data}
         for k, v in data.items():
             if isinstance(v, dict):
-                v = DictConfig.from_dict(**v)
+                v = Config.from_dict(**v)
             if isinstance(v, list):
                 for index, item in enumerate(v):
                     if isinstance(item, dict):
-                        v[index] = DictConfig.from_dict(**item)
+                        v[index] = Config.from_dict(**item)
             self[k] = v
         return self
 

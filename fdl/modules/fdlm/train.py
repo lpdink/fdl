@@ -1,6 +1,6 @@
 from fdl import register
 from fdl.base import TrainBase
-from fdl.common import print_warning
+from fdl._common import print_warning
 
 torch_exists = True
 try:

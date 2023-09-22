@@ -1,5 +1,5 @@
 from fdl import register
-from fdl.common import print_warning
+from fdl._common import print_warning
 import inspect
 
 torch_exists = True

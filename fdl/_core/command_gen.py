@@ -1,5 +1,5 @@
-from fdl.factory import Factory
-from fdl.common import Logger
+from fdl._factory import Factory
+from fdl._common import Logger
 from fdl.utils import gen_clazz_example_obj
 from copy import deepcopy
 import json

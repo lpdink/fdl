@@ -1,0 +1,47 @@
+{
+    "program": {
+        "name": "Test",
+        "saved_path": "./fdl_space"
+    },
+    "objects": [
+        {
+            "clazz":"test_atonce.Teacher",
+            "command":"call",
+            "args":{
+                "students":[
+                    "@@${xiaoming}.set_id(114514)@@",
+                    {
+                        "clazz":"test_atonce.Student",
+                        "args":{"name":"LiHong"}
+                    },
+                    {
+                        "clazz":"test_atonce.Student",
+                        "args":{"name":"ZhangLiang"}
+                    }
+                ]
+            }
+        },
+        {
+            "clazz":"test_atonce.Teacher",
+            "command":"call",
+            "args":{
+                "students":[
+                    "@@${xiaoming}.set_id(114514)@@",
+                    {
+                        "clazz":"test_atonce.Student",
+                        "args":{"name":"LiHong"}
+                    },
+                    {
+                        "clazz":"test_atonce.Student",
+                        "args":{"name":"ZhangLiang"}
+                    }
+                ]
+            }
+        },
+        {
+            "name":"xiaoming",
+            "clazz":"test_atonce.Student",
+            "args":["XiaoMing"]
+        }
+    ]
+}

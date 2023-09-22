@@ -1,8 +1,10 @@
 import os
 import re
+import sys
 import shutil
 import json
 import inspect
+from datetime import datetime
 from copy import deepcopy
 
 FDL_OBJ = {
@@ -107,3 +109,38 @@ def create_dirs_if_not_exists(dir_path):
         os.makedirs(dir_path)
     else:
         raise FileExistsError(f"create dir failed:'{dir_path}' already exists.")
+
+
+def create_workfolder(saved_path, program_name):
+    """创建工作目录，saved_path/program_name/time/"""
+    save_abs_path = os.path.abspath(saved_path)
+
+    now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    work_dir = os.path.join(save_abs_path, program_name, now)
+    create_dirs_if_not_exists(work_dir)
+
+
+def bind(module_path):
+    """
+    如果module_path是file，则file直接作为顶层绑定。
+    如果module_path是folder，则倒入该folder
+    """
+    if module_path is None:
+        return
+    if not os.path.exists(module_path):
+        raise FileNotFoundError(f"fdl bind modules error. {module_path} not exists!")
+    module_path = re.sub("/+$", "", module_path)
+    dir_path = os.path.dirname(module_path)
+    sys.path.append(dir_path)
+    module_name = os.path.basename(module_path)
+    module_name = re.sub(r"\.py$", "", module_name)
+    try:
+        exec(f"import {module_name} as _register_module_")
+    except ModuleNotFoundError as e:
+        raise ModuleNotFoundError(
+            f"fdl bind modules error. This may caused by missing __init__.py file pointer to file in modules. error msg:{e.msg}"
+        )
+    except ImportError as e:
+        raise ImportError(
+            f"fdl bind modules error. This may caused by wrong grammar in {module_name}. error msg:{e.msg}"
+        )
