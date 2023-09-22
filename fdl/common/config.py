@@ -19,6 +19,8 @@ class DictConfig(dict):
         with open(config_path, "r") as file:
             content = file.read()
         data = json.loads(content)
+        if isinstance(data, list):
+            data = {"objects":data}
         for k, v in data.items():
             if isinstance(v, dict):
                 v = DictConfig.from_dict(**v)

@@ -1,8 +1,11 @@
 """
-提供三个注册：
-register
-register_as
-register_all
+factory的作用：
+- 提供register功能，
+- 提供clazz和obj存储库，
+- 根据json构造对象，
+- 提供查询core对象的方法。
+memory->register->creator
+Register && register function(register, register_as, register_module_)
 """
 import inspect
 import re
@@ -29,6 +32,109 @@ class Factory:
         self._core_objs = list()
         Factory.init = True
 
+    def create(self, config: dict):
+        assert "objects" in config.keys()
+        obj_configs = config["objects"]
+        assert isinstance(obj_configs, list)
+        # 反序构建
+        for idx, obj_config in enumerate(obj_configs[::-1]):
+            assert isinstance(obj_config, dict)
+            # get suggest anme
+            suggest_name = f"objects_{idx}"
+            obj_name, new_obj = self.create_single_obj(obj_config, suggest_name)
+            # 保存顶层对象
+            self._save_obj(obj_name, new_obj)
+            # 顶层object 可能拥有字段command
+            if "command" in obj_config.keys() and isinstance(obj_config["command"], str):
+                self._core_objs.append(new_obj)
+        # 反转core对象
+        self._core_objs.reverse()
+            
+
+    def create_single_obj(self, obj_config: dict, suggest_name):
+        obj_name = self._get_obj_name(obj_config, suggest_name)
+        obj_clazz = self._get_obj_clazz(obj_config)
+        obj_args = self._get_obj_args(obj_config)
+        new_obj = self._construct_obj(obj_clazz, obj_args)
+        # 保存对象的初始化配置
+        setattr(new_obj, "_init_config", obj_config)
+        return obj_name, new_obj
+
+    def _get_obj_name(self, obj_config: dict, suggest_name=None):
+        if "name" not in obj_config.keys():
+            if isinstance(suggest_name, str):
+                obj_config["name"] = suggest_name
+            else:
+                raise ValueError(
+                    f"can't match name for {obj_config}, no key name and suggest_name is not str {suggest_name}."
+                )
+        return obj_config["name"]
+
+    def _get_obj_clazz(self, obj_config: dict):
+        assert (
+            "clazz" in obj_config.keys()
+        ), f"no clazz in {obj_config} construct obj failed."
+        clazz_name = obj_config["clazz"]
+        if clazz_name in self._name2clazz.keys():
+            clazz = self._name2clazz[clazz_name]
+        else:
+            raise KeyError(f"clazz {clazz_name} not register!")
+        return clazz
+
+    def _get_obj_args(self, obj_config: dict):
+        args = list()
+        args = obj_config.get("args", args)
+        obj_name = self._get_obj_name(obj_config)
+        args = self._preprocess_args(args, obj_name)
+        return args
+
+    def _preprocess_args(self, args, father_name):
+        # 参数args是一个list或dict容器，正则化容器元素
+        if isinstance(args, list):
+            args_iter = enumerate(args)
+        elif isinstance(args, dict):
+            args_iter = args.items()
+        else:
+            raise TypeError(
+                f"unexpected args type, expected list or dict, got {type(args)}"
+            )
+        for arg_key, arg_value in args_iter:
+            """
+            arg_value:
+            ["${item}"]
+            [{"name":..., "clazz":...}]
+            {"name":"${item}", "msg":"@@${item}.get_msg()@@"} # no clazz
+            {"clazz":"....", "args":""} # with clazz
+            """
+            if isinstance(arg_value, dict):
+                if "clazz" in arg_value.keys():
+                    # 有clazz走子对象构建
+                    sub_obj_name, arg_value = self.create_single_obj(
+                        arg_value, suggest_name=f"{father_name}.{arg_key}"
+                    )
+                else:
+                    # 没有则递归再处理此子元素，递归出口至所有元素都是非容器
+                    arg_value = self._preprocess_args(
+                        arg_value, f"{father_name}.{arg_key}"
+                    )
+            elif isinstance(arg_value, list):
+                arg_value = self._preprocess_args(arg_value, f"{father_name}.{arg_key}")
+            elif isinstance(arg_value, str):
+                match = re.search(r"\${(.+?)}", str(arg_value))
+                if arg_value.count("@@") >= 2:
+                    # 解析命令并执行
+                    command_str = self._replace_place_holder_with_dict_get(arg_value)
+                    arg_value = self._exec_command_to_get_obj(command_str)
+                elif match:
+                    # 直接替换
+                    match_str = match.group(1)
+                    assert (
+                        match_str in self._name2obj.keys()
+                    ), f"{match_str} not found in objs_pool, this may caused by wrong words in json or wrong objs order. Be careful that father obj should in front."
+                    arg_value = self._name2obj[match_str]
+            args[arg_key] = arg_value
+        return args
+    
     def _replace_place_holder_with_dict_get(self, command):
         # Define the regular expression pattern to match "${obj}"
         pattern = r"\${(.*?)}"
@@ -66,79 +172,27 @@ class Factory:
             return exec_rst["ret"]
         else:
             raise RuntimeError("Never run this line.")
-
-    def _replace_args(self, obj):
-        obj_name = obj["name"]
-        obj_args = list()
-        obj_args = obj.get("args", obj_args)
-        if isinstance(obj_args, list):
-            obj_args_iter = enumerate(obj_args)
-        elif isinstance(obj_args, dict):
-            obj_args_iter = obj_args.items()
+    
+    def _construct_obj(self, clazz, args):
+        assert callable(clazz)
+        if isinstance(args, list):
+            obj = clazz(*args)
+        elif isinstance(args, dict):
+            obj = clazz(**args)
         else:
-            raise TypeError(
-                f"args type expected to be list or dict, got {type(obj_args)}, factory construct obj {obj_name}"
-            )
-
-        for arg_idx, arg_value in obj_args_iter:
-            # 1. 替换+执行：@@str(${obj_name})@@+@@"hello world！"@@-》先替换，再执行
-            # 2. 替换 ${obj_name}-》替换成对象
-            # 3. 字面量 123->可以走2的逻辑，保持不变。
-            if isinstance(arg_value, str):
-                match = re.search(r"\${(.+?)}", str(arg_value))
-                if arg_value.count("@@") >= 2:
-                    # 解析命令并执行
-                    command_str = self._replace_place_holder_with_dict_get(arg_value)
-                    target_obj = self._exec_command_to_get_obj(command_str)
-                elif match:
-                    # 直接替换
-                    match_str = match.group(1)
-                    assert (
-                        match_str in self._name2obj.keys()
-                    ), f"{match_str} not found in objs_pool, this may caused by wrong words in json or wrong objs order. Be careful that father obj should in front."
-                    target_obj = self._name2obj[match_str]
-                else:
-                    target_obj = arg_value
-            else:
-                target_obj = arg_value
-            obj_args[arg_idx] = target_obj
-        return obj_args
-
-    def create(self, dic: dict):
-        assert "objects" in dic.keys(), "to create objs, dic should have key 'objects'!"
-
-        assert isinstance(dic["objects"], list), "dic['objects'] should be list-like."
-
-        # 按照objects列表的反序创建对象
-        for obj in dic["objects"][::-1]:
-            assert isinstance(obj, dict)
-            # clazz必须已经在factory中注册
-            if not obj["clazz"] in self._name2clazz.keys():
-                raise KeyError(
-                    f"fdl create obj failed. factory can't find clazz {obj['clazz']}, maybe not register properly."
-                )
-
-            # 解析args，将${}替换为对象
-            obj_args = self._replace_args(obj)
-
-            # 改变args中占位符指向后，创建new_obj
-            if isinstance(obj_args, list):
-                new_obj = self._name2clazz[obj["clazz"]](*obj_args)
-            elif isinstance(obj_args, dict):
-                new_obj = self._name2clazz[obj["clazz"]](**obj_args)
-            else:
-                raise TypeError("never exec this line.")
-            # 保存core对象
-            if getattr(obj, "is_core", False):
-                self._core_objs.append(new_obj)
-            # 将构造配置附件给对象
-            setattr(new_obj, "_init_config", obj)
-            self._name2obj[obj["name"]] = new_obj
-            self._obj2name[new_obj] = obj["name"]
-
-        # 反转core_objs
-        self._core_objs.reverse()
-
+            raise TypeError(f"construct obj expected args be list or dict, got {type(args)}")
+        return obj
+    
+    def _save_obj(self, obj_name, obj):
+        if obj_name not in self._name2obj.keys():
+            self._name2obj[obj_name]  = obj
+        else:
+            raise RuntimeError(f"factory save obj failed. obj_name {obj_name} already been used by {self._name2obj[obj_name]}")
+        if obj not in self._obj2name.keys():
+            self._obj2name[obj]  = obj_name
+        else:
+            raise RuntimeError(f"factory save obj failed. obj {obj} already been saved with name {self._obj2name[obj]}")
+        
     def get_core_objs(self):
         return self._core_objs
 

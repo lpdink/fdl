@@ -17,9 +17,6 @@ class TerminalUI:
     def _add_run(self, sub_parser):
         parser_run = sub_parser.add_parser("run", help="run tasks with json file")
         parser_run.add_argument(
-            "func_to_run", type=str, help="function you want to run."
-        )
-        parser_run.add_argument(
             "program_config_path", type=str, help="config file path of program."
         )
         parser_run.add_argument(

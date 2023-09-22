@@ -1,19 +1,17 @@
 import fdl._handle_exception as exception_handle
 from fdl.helper import WorkFolderHelper, BindModuleHelper
-from fdl.common import Logger, DictConfig
+from fdl.common import Logger, DictConfig, print_warning
 from fdl.factory import Factory
 from fdl.utils import copy_if_not_exists
 
 
 def parse_args(args):
     program_config_path = args.program_config_path
-    func_to_run = args.func_to_run
-
-    return program_config_path, func_to_run
+    return program_config_path
 
 
 def run(args):
-    program_config_path, func_to_run = parse_args(args)
+    program_config_path = parse_args(args)
     exception_handle.check_config_file(program_config_path)
 
     # 读取配置文件
@@ -34,7 +32,12 @@ def run(args):
     factory.create(program_config)
     # 执行核心对象的func_to_run
     core_objs = factory.get_core_objs()
+    if len(core_objs)==0:
+        print("No command config in json. Nothing to run. Try set command attr to top objects.")
     for obj in core_objs:
+        assert hasattr(obj, "_init_config")
+        assert hasattr(obj._init_config, "command")
+        func_to_run = obj._init_config.command
         if not hasattr(obj, func_to_run):
             raise AttributeError(
                 f"object {obj._init_config.name} don't have method {func_to_run}"
@@ -48,6 +51,3 @@ def run(args):
             #     raise RuntimeError(
             #         f"exec object {obj._init_config.name} core method {func_to_run} failed. error msg : {e}"
             #     )
-
-    # 执行结束
-    print("all program done.")

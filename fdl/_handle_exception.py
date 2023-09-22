@@ -51,14 +51,13 @@ def check_objects(objects):
     element_names = []
     for element in objects:
         if isinstance(element, dict):
-            check_key_in_dict("name", element)
             check_key_in_dict("clazz", element)
-            check_value_in_dict_isinstance("name", str, element, True)
             check_value_in_dict_isinstance("clazz", str, element, True)
-            per_name = element["name"]
-            if per_name in element_names:
-                raise ValueError(f"objects name '{per_name}' have repeats")
-            element_names.append(per_name)
+            per_name = element.get("name", None)
+            if per_name is not None:
+                if per_name in element_names:
+                    raise ValueError(f"objects name '{per_name}' have repeats")
+                element_names.append(per_name)
         else:
             raise TypeError(
                 f"element in config file's objects list expected to be dict, got{type(element)}, element:{element}"
@@ -71,25 +70,20 @@ def check_config_file(config_file_path: str):
     config file必须存在，必须能被正确解析，必须符合fdl协议（检查必须项配置），只允许存在一个is_core的对象。且必须存在。
 
     检查存在字段:
-    program.name
-    program.saved_path
     objects
-    检查
-    isinstance(program.name)
     检查:
     isinstance(objects, list)
-    objects中存在且只存在一个含有is_core的元素
 
     Args:
         config_file_path (str): _description_
     """
     assert_file_exists(config_file_path)
     config = load_json_file_to_dict(config_file_path)
-    check_key_in_dict("program.name", config)
-    check_key_in_dict("program.saved_path", config)
+    # check_key_in_dict("program.name", config) # 不一定需要存在
+    # check_key_in_dict("program.saved_path", config) # 不一定需要存在
     check_key_in_dict("objects", config)
-    check_value_in_dict_isinstance("objects", list, config, True)
-    check_value_in_dict_isinstance("program.name", str, config, True)
-    check_value_in_dict_isinstance("program.saved_path", str, config)
+    check_value_in_dict_isinstance("objects", list, config, False)
+    # check_value_in_dict_isinstance("program.name", str, config, True)
+    # check_value_in_dict_isinstance("program.saved_path", str, config)
     check_objects(config["objects"])
     return True

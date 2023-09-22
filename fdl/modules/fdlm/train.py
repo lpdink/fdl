@@ -51,8 +51,8 @@ if torch_exists:
             loss.backward()
             self.opt.step()
             return {
-                f"{self.model._init_config.name}/loss": loss.item(),
-                f"{self.model._init_config.name}/acc": point / pred.size(0),
+                f"loss": loss.item(),
+                f"acc": point / pred.size(0),
             }
 
 else:
