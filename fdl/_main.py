@@ -1,18 +1,35 @@
 import argparse
-
+import pathlib
 import fdl._core as _core
 from fdl._utils import bind
 
 __FDL_VERSION__ = "0.0.1"
+__MODULE_PATH__ = (
+    pathlib.Path(__file__).parent.joinpath("modules").absolute().as_posix()
+)
 
 
 def show_version():
     print(f"FDL version : {__FDL_VERSION__}")
 
 
+def get_usage():
+    return (
+        "\nfdl run Your_Json_Path [-b temp_module]\n"
+        "fdl show Partly_Clazz_Name(use '' to show all) [-b Temp_Module]\n"
+        "fdl gen [Full_Clazz_Name1, Full_Clazz_Name2...] [-b Temp_Module]\n"
+    )
+
+
 class TerminalParser:
     def __init__(self) -> None:
-        self._parser = argparse.ArgumentParser()
+        self._parser = argparse.ArgumentParser(
+            description=(
+                f"Welcome to use FDL {__FDL_VERSION__}. You can copy your module to"
+                f" {__MODULE_PATH__} to make the module persistent"
+            ),
+            usage=get_usage(),
+        )
         self.sub_parser = self._parser.add_subparsers()
 
     def add_arguments(self):
@@ -82,14 +99,20 @@ class TerminalParser:
             "clazz",
             type=str,
             default="",
-            help="module you want to show detail info. if not set, show all registered modules' name",
+            help=(
+                "module you want to show detail info. if not set, show all registered"
+                " modules' name"
+            ),
         )
         show_parser.add_argument(
             "-v",
             "--verbose",
             default=False,
             action="store_true",
-            help="module you want to show detail info. if not set, show all registered modules' name",
+            help=(
+                "module you want to show detail info. if not set, show all registered"
+                " modules' name"
+            ),
         )
         show_parser.add_argument(
             "-b",

@@ -7,4 +7,4 @@ class SayMsg:
         self.msg = msg
 
     def say_msg(self):
-        print("Hey here! {}".format(self.msg))
+        print("Hey here!", self.msg)

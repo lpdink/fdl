@@ -1,0 +1,28 @@
+[
+    {
+        "clazz": "Teacher",
+        "method": "call_name",
+        "args": [
+            [
+                {
+                    "clazz": "Student",
+                    "args": [
+                        "Alice"
+                    ]
+                },
+                {
+                    "clazz": "Student",
+                    "args": [
+                        "Bob"
+                    ]
+                },
+                {
+                    "clazz": "Student",
+                    "args": [
+                        "Candy"
+                    ]
+                }
+            ]
+        ]
+    }
+]

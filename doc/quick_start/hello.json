@@ -1,3 +1,9 @@
 [
-    
+    {
+        "clazz": "SayMsgClass",
+        "method": "say_msg",
+        "args": {
+            "msg": "I am FDL"
+        }
+    }
 ]

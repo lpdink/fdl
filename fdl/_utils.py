@@ -136,11 +136,13 @@ def bind(module_path):
         exec(f"import {module_name} as _register_module_")
     except ModuleNotFoundError as e:
         raise ModuleNotFoundError(
-            f"fdl bind modules error. This may caused by missing __init__.py file pointer to file in modules. error msg:{e.msg}"
+            "fdl bind modules error. This may caused by missing __init__.py file"
+            f" pointer to file in modules. error msg:{e.msg}"
         )
     except ImportError as e:
         raise ImportError(
-            f"fdl bind modules error. This may caused by wrong grammar in {module_name}. error msg:{e.msg}"
+            "fdl bind modules error. This may caused by wrong grammar in"
+            f" {module_name}. error msg:{e.msg}"
         )
 
 
@@ -185,11 +187,13 @@ def check_objects(objects):
             )
         if "clazz" not in obj_config.keys():
             raise KeyError(
-                f"element in 'objects' list expected to have key 'clazz', got {obj_config.keys()}"
+                "element in 'objects' list expected to have key 'clazz', got"
+                f" {obj_config.keys()}"
             )
         if not isinstance(obj_config["clazz"], str):
             raise TypeError(
-                f"clazz of element in 'objects' list expected to be str, got {type(obj_config['clazz'])}"
+                "clazz of element in 'objects' list expected to be str, got"
+                f" {type(obj_config['clazz'])}"
             )
         # only count top elements' name
         if "name" in obj_config.keys():
