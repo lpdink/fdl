@@ -34,6 +34,6 @@ def gen_json(args):
             output_json["objects"].append(obj_config)
         else:
             print(f"can't find {clazz_name} in factory, won't dump it to json.")
-    with open(output_path, "w") as file:
+    with open(output_path, "w", encoding="utf-8") as file:
         json.dump(output_json, file, indent=4)
     print(f"saved gen json to {output_path}")

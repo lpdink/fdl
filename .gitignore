@@ -2,7 +2,7 @@
 __pycache__
 workspace
 dist
-fdl.egg-info
+*.egg-info
 fdl_space
 output.json
 tmp

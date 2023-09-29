@@ -1,14 +1,19 @@
 # FDL: Fast Dependency Loader
 
+[English](README.md) | 中文
+
 - [FDL: Fast Dependency Loader](#fdl-fast-dependency-loader)
   - [简介](#简介)
-  - [实用场景](#实用场景)
   - [安装](#安装)
   - [快速开始](#快速开始)
   - [当构造函数参数是复杂对象](#当构造函数参数是复杂对象)
     - [构造子对象](#构造子对象)
     - [使用引用对象](#使用引用对象)
     - [更复杂的情况](#更复杂的情况)
+  - [注册模块的多种方法](#注册模块的多种方法)
+    - [register\_as](#register_as)
+    - [register](#register)
+    - [register\_clazz\_as\_name](#register_clazz_as_name)
   - [自动生成需要的json文件](#自动生成需要的json文件)
   - [持久化您的模块](#持久化您的模块)
 
@@ -18,18 +23,11 @@ FDL是纯python编写的，无第三方库依赖的依赖注入框架，语法�
 FDL以简单的一个json文件为输入，通过json配置，您可以动态决定程序行为。在模块的支持下，您可以零代码，只简单配置json，快速地完成各种任务。您可以将编写的代码注册为模块，方便地在不同项目之间复用。最赞的是，不同的模块还可以方便地组合起来一起工作。   
 您可以从其他人那里取得模块，或者将模块分享出去，黑盒地使用他们。  
 
-## 实用场景
-
-对于算法工程师，您准备在多种数据集，多种模型，不同参数下训练深度学习模型，但是却苦于不断修改代码/资源文件来切换配置？   
-对于数据分析师，您编写了不同的数据预处理模块，数据分析策略，可视化模块等等，但是苦于将这些模块连接起来，像流水线那样完成工作？   
-更多的情况下，您编写了一些功能性代码片段，但是不易将他们保存下来，往往用一次就弃置，再用时又要重写？  
-
-使用FDL来解决这些问题！  
-
 ## 安装 
 
 ```sh
-pip install fdl
+# 推荐python>=3.6
+pip install fastDepsLoader
 ```
 
 ## 快速开始
@@ -267,6 +265,78 @@ Candy
 0.42559832725215485
 ```
 
+## 注册模块的多种方法
+
+容易理解，注册模块使用的名字必须是唯一的，以便您能正确构造模块，否则FDL会产生报错。为不同场景，FDL提供了多种注册模块的方法。
+
+### register_as
+
+正如上一节中演示的那样，register_as接受一个您设置的字符串来调用装饰器，将类或函数（任何有返回值的可调用对象）绑定给该字符串。然后就能在json中使用它来构造对应的对象。    
+
+例如：
+
+```py
+from fdl import register_as
+
+@register_as("NodeClazzName")
+class Node:
+    pass
+
+```
+
+此时您可以使用NodeClazzName来构造对象。
+
+### register
+
+register的对象将由FDL根据对象定义的模块来确定name，例如：
+
+```py
+from fdl import register
+
+@register
+class Node:
+    pass
+
+```
+
+如果它定义在test.py中，您通过-b test.py，尝试创建Node对象，则可以使用名字：test.Node。  
+如果它定义在目录test_folder/test_node/test.py下，且您通过__init__.py文件，将Node引入到test_folder模块，尝试-b test_folder，则它会被命名为test_folder.test_node.test.Node。  
+
+您也可以注册库提供的类，例如：
+
+```python
+from fdl import register
+from torchvision.datasets import MNIST
+
+register(MNIST)
+```
+
+MNIST会被注册为：torchvision.datasets.mnist.MNIST
+
+@register在您需要管理大量的模块时很有用，它保证了模块名的唯一性，在您准备[持久化您的模块](#持久化您的模块)时，推荐优先使用它，而不是register_as。
+
+### register_clazz_as_name
+
+与前两个方法不同，register_clazz_as_name不是装饰器，而需要直接调用。适用于您希望为导入的类或函数自行命名时。
+
+例如：
+
+```python
+from fdl import register_clazz_as_name
+from torchvision.datasets import MNIST
+
+register_clazz_as_name(MNIST, "MNIST_REGISTER_NAME")
+```
+
+> 这一方法是语法糖，对于理解装饰器的朋友来说，它实际上等同于：
+```python
+from fdl import register_as
+from torchvision.datasets import MNIST
+
+register = register_as("MNIST_REGISTER_NAME")
+register(MNIST)
+```
+
 ## 自动生成需要的json文件
 
 当我们的项目变得庞大，或者注册的类或函数的数量有很多，有时候，我们不太记得某些类或函数需要哪些参数了，此时我们就可以让fdl来自动生成所需的json文件。   
@@ -410,4 +480,4 @@ Welcome to use FDL 0.0.1. You can copy your module to .../fdl/modules to make th
 
 此后，您就可以直接使用这些模块，而无需总是通过-b绑定一系列模块了。  
 
-作者正在考虑设计fdl install和fdl uninstall 命令来帮助您管理模块，锐意开发中，敬请期待！
+作者正在考虑设计fdl install和fdl uninstall 命令来帮助您管理模块。

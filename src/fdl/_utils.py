@@ -62,14 +62,14 @@ def assert_file_exists(file_path: str):
 
 
 def load_json_file_to_dict(json_file_path):
-    with open(json_file_path, "r") as file:
+    with open(json_file_path, "r", encoding="utf-8") as file:
         content = file.read()
     try:
         dic = json.loads(content)
-    except json.decoder.JSONDecodeError:
+    except json.decoder.JSONDecodeError as error:
         raise RuntimeError(
             f"{json_file_path} decoder failed. this file's grammar may be wrong."
-        )
+        ) from error
     return dic
 
 
@@ -134,26 +134,28 @@ def bind(module_path):
     module_name = re.sub(r"\.py$", "", module_name)
     try:
         exec(f"import {module_name} as _register_module_")
-    except ModuleNotFoundError as e:
+    except ModuleNotFoundError as error:
         raise ModuleNotFoundError(
             "fdl bind modules error. This may caused by missing __init__.py file"
-            f" pointer to file in modules. error msg:{e.msg}"
-        )
-    except ImportError as e:
+            f" pointer to file in modules. error msg:{error.msg}"
+        ) from error
+    except ImportError as error:
         raise ImportError(
             "fdl bind modules error. This may caused by wrong grammar in"
-            f" {module_name}. error msg:{e.msg}"
-        )
+            f" {module_name}. error msg:{error.msg}"
+        ) from error
 
 
 def read_json_from_file(json_path):
-    with open(json_path, "r") as file:
+    with open(json_path, "r", encoding="utf-8") as file:
         try:
             rst = json.load(file)
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError as error:
             raise json.JSONDecodeError(
-                f"{json_path} is not a valid json file.{e.msg}", e.doc, e.pos
-            )
+                f"{json_path} is not a valid json file.{error.msg}",
+                error.doc,
+                error.pos,
+            ) from error
     return rst
 
 

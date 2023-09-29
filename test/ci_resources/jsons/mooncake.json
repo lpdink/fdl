@@ -1,0 +1,83 @@
+[
+    {
+        "name": "MoonCakeFactory",
+        "clazz": "Pipeline",
+        "method": "process",
+        "args": {
+            "raw": {
+                "status": "raw",
+                "history": []
+            },
+            "processors": [
+                "${add_flour}",
+                {
+                    "name": "add_milk",
+                    "clazz": "Converter",
+                    "args": [
+                        null,
+                        "_milk"
+                    ]
+                },
+                "${add_salt}",
+                {
+                    "name": "mixer",
+                    "clazz": "Converter",
+                    "args": {
+                        "dst": "mixer",
+                        "src": "raw_flour_milk_salt",
+                        "append": false
+                    }
+                },
+                {
+                    "name": "add_egg",
+                    "clazz": "Converter",
+                    "args": [
+                        null,
+                        "_egg"
+                    ]
+                },
+                {
+                    "name": "cool",
+                    "clazz": "Converter",
+                    "args": [
+                        null,
+                        "_cool"
+                    ]
+                },
+                {
+                    "name": "hot",
+                    "clazz": "Converter",
+                    "args": [
+                        null,
+                        "_hot"
+                    ]
+                },
+                {
+                    "name": "cook",
+                    "clazz": "Converter",
+                    "args": {
+                        "dst": "MoonCake",
+                        "src": "mixer_egg_cool_hot",
+                        "append": false
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "name": "add_flour",
+        "clazz": "Converter",
+        "args": {
+            "dst": "_flour",
+            "src": null
+        }
+    },
+    {
+        "name": "add_salt",
+        "clazz": "Converter",
+        "args": [
+            null,
+            "_salt"
+        ]
+    }
+]
