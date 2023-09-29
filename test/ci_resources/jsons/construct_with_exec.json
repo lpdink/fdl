@@ -1,0 +1,8 @@
+[
+    {
+        "clazz": "Student",
+        "args": {
+            "name": "@@ret=[456@@"
+        }
+    }
+]

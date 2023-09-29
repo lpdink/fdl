@@ -1,0 +1,18 @@
+{
+    "task": {
+        "name": "MyTask",
+        "saved_path": "./fdl_space"
+    },
+    "objects": [
+        {
+            "name": "test",
+            "clazz": "testClazz",
+            "args": []
+        },
+        {
+            "name": "test",
+            "clazz": "testClazz2",
+            "args": []
+        }
+    ]
+}

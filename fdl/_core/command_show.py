@@ -1,10 +1,11 @@
 import inspect
 import json
+
 from fdl._factory import Factory
-from fdl.utils import gen_clazz_example_obj
+from fdl._utils import gen_clazz_example_obj
 
 
-def print_module(clazz, clazz_name):
+def print_module_v(clazz, clazz_name):
     example_json = gen_clazz_example_obj(clazz, clazz_name)
     doc = clazz.__doc__
     example_json = json.dumps(example_json, indent=2)
@@ -19,18 +20,25 @@ def print_module(clazz, clazz_name):
 
 
 def parse_args(args):
-    clazzs = args.clazzs
-    return clazzs
+    clazz = args.clazz
+    verbose = args.verbose
+    return clazz, verbose
 
 
 def show(args):
-    clazzs = parse_args(args)
+    input_clazz, verbose = parse_args(args)
     factory = Factory()
-    if len(clazzs) == 0:
-        factory.print_register_clazzs()
-        return
     name2clazz = factory.get_name2clazz()
-    for clazz_name in clazzs:
-        if clazz_name in name2clazz.keys():
-            clazz = name2clazz[clazz_name]
-            print_module(clazz, clazz_name)
+    if not verbose:
+        print("=============name:clazz=============")
+
+    for key, value in name2clazz.items():
+        if input_clazz in key:
+            if verbose:
+                print_module_v(value, key)
+            else:
+                print(key, value)
+    # for clazz_name in clazz:
+    #     if clazz_name in name2clazz.keys():
+    #         clazz = name2clazz[clazz_name]
+    #         print_module(clazz, clazz_name)

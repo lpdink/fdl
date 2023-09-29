@@ -65,6 +65,3 @@ class Logger(FatherLog.Logger):
 
     def get_work_dir(self):
         return self.log_folder
-
-
-FDL_LOG = Logger()

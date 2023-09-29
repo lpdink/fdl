@@ -1,24 +1,22 @@
+import inspect
+import json
 import os
 import re
-import sys
 import shutil
-import json
-import inspect
-from datetime import datetime
+import sys
+from collections import Counter
 from copy import deepcopy
+from datetime import datetime
 
-FDL_OBJ = {
-    "name": "NotSet",
-    "clazz": "NotSet",
-    "is_core": False,
-}
+FDL_OBJ = {"clazz": "NotSet"}
 
 
 def setup_global_seed(seed):
     if seed is not None:
-        import torch
-        import numpy as np
         import random
+
+        import numpy as np
+        import torch
 
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
@@ -36,7 +34,6 @@ def is_json_serializable(obj):
 
 def gen_clazz_example_obj(clazz, clazz_name):
     obj_config = deepcopy(FDL_OBJ)
-    obj_config["name"] = f"{clazz.__name__}.__example_obj__"
     obj_config["clazz"] = clazz_name
     def_path = inspect.getabsfile(clazz)
     obj_config["def_path"] = def_path
@@ -111,13 +108,14 @@ def create_dirs_if_not_exists(dir_path):
         raise FileExistsError(f"create dir failed:'{dir_path}' already exists.")
 
 
-def create_workfolder(saved_path, program_name):
-    """创建工作目录，saved_path/program_name/time/"""
+def create_workfolder(saved_path, task_name):
+    """创建工作目录，saved_path/task_name/time/"""
     save_abs_path = os.path.abspath(saved_path)
 
     now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    work_dir = os.path.join(save_abs_path, program_name, now)
+    work_dir = os.path.join(save_abs_path, task_name, now)
     create_dirs_if_not_exists(work_dir)
+    return work_dir
 
 
 def bind(module_path):
@@ -144,3 +142,88 @@ def bind(module_path):
         raise ImportError(
             f"fdl bind modules error. This may caused by wrong grammar in {module_name}. error msg:{e.msg}"
         )
+
+
+def read_json_from_file(json_path):
+    with open(json_path, "r") as file:
+        try:
+            rst = json.load(file)
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"{json_path} is not a valid json file.{e.msg}", e.doc, e.pos
+            )
+    return rst
+
+
+# def get_object_names(object_config):
+#     # get name list in object or list^(object)
+#     names = list()
+#     if isinstance(object_config, dict):
+#         if "name" in object_config.keys():
+#             names.append(object_config["name"])
+#         if "clazz" in object_config.keys() and "args" in object_config.keys():
+#             args = object_config["args"]
+#             names += get_object_names(args)
+#     elif isinstance(object_config, list):
+#         for item in object_config:
+#             names += get_object_names(item)
+#     return names
+
+
+def check_objects(objects):
+    """
+    check_objects:
+    - element in top objects must be dict
+    - element in top objects must have key 'clazz', clazz value must be str
+    - name of element in top objects can't repeat.
+    """
+    obj_names = []
+    for obj_config in objects:
+        if not isinstance(obj_config, dict):
+            raise TypeError(
+                f"element in 'objects' list expected to be dict, got {type(obj_config)}"
+            )
+        if "clazz" not in obj_config.keys():
+            raise KeyError(
+                f"element in 'objects' list expected to have key 'clazz', got {obj_config.keys()}"
+            )
+        if not isinstance(obj_config["clazz"], str):
+            raise TypeError(
+                f"clazz of element in 'objects' list expected to be str, got {type(obj_config['clazz'])}"
+            )
+        # only count top elements' name
+        if "name" in obj_config.keys():
+            obj_names.append(obj_config["name"])
+    counter = Counter(obj_names)
+    repeat = list()
+    for name, times in counter.items():
+        if times > 1:
+            repeat.append(name)
+    if len(repeat) > 0:
+        raise ValueError(
+            f"top element's name expected not repeat, {repeat} have repeat."
+        )
+
+
+def check_config_file(json_path):
+    """
+    check json file:
+    - must exists
+    - valid json
+    - have objects
+    """
+    assert_file_exists(json_path)
+    config = read_json_from_file(json_path)
+    if isinstance(config, dict):
+        if "objects" not in config.keys():
+            raise KeyError(f"{json_path} is a dict, but no 'objects' found.")
+        objects = config["objects"]
+        if not isinstance(objects, list):
+            raise TypeError(f"objects in {json_path} expected to be list.")
+    elif isinstance(config, list):
+        objects = config
+    else:
+        raise TypeError(
+            f"json file top elements must be dict or list, got {type(config)}"
+        )
+    check_objects(objects)

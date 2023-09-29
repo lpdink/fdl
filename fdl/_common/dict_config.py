@@ -1,3 +1,4 @@
+# pylint:disable=C0114,C0115,C0116
 import json
 
 
@@ -5,34 +6,34 @@ class Config(dict):
     @classmethod
     def from_dict(cls, **kwargs) -> None:
         config = cls()
-        for k, v in kwargs.items():
-            if isinstance(v, dict):
-                v = Config.from_dict(**v)
-            if isinstance(v, list):
-                for index, item in enumerate(v):
+        for key, value in kwargs.items():
+            if isinstance(value, dict):
+                value = Config.from_dict(**value)
+            if isinstance(value, list):
+                for index, item in enumerate(value):
                     if isinstance(item, dict):
-                        v[index] = Config.from_dict(**item)
-            config[k] = v
+                        value[index] = Config.from_dict(**item)
+            config[key] = value
         return config
 
     def read(self, config_path):
-        with open(config_path, "r") as file:
+        with open(config_path, "r", encoding="utf-8") as file:
             content = file.read()
         data = json.loads(content)
         if isinstance(data, list):
             data = {"objects": data}
-        for k, v in data.items():
-            if isinstance(v, dict):
-                v = Config.from_dict(**v)
-            if isinstance(v, list):
-                for index, item in enumerate(v):
+        for key, value in data.items():
+            if isinstance(value, dict):
+                value = Config.from_dict(**value)
+            if isinstance(value, list):
+                for index, item in enumerate(value):
                     if isinstance(item, dict):
-                        v[index] = Config.from_dict(**item)
-            self[k] = v
+                        value[index] = Config.from_dict(**item)
+            self[key] = value
         return self
 
     def get(self, key, default=None):
-        if key in self.__dict__.keys():
+        if key in self.__dict__:
             return getattr(self, key)
         else:
             return default

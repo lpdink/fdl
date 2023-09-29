@@ -1,5 +1,6 @@
 import os
-from fdl.helper import BindModuleHelper
+
+from fdl._utils import bind
 
 
 def __register_fdlm():
@@ -10,8 +11,7 @@ def __register_fdlm():
         if name == __file__:
             continue
         module_path = os.path.join(dir_path, name)
-        binder = BindModuleHelper(module_path)
-        binder.bind()
+        bind(module_path)
 
 
 __register_fdlm()

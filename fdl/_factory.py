@@ -9,6 +9,8 @@ Register && register function(register, register_as, register_module_)
 """
 import inspect
 import re
+import sys
+import traceback
 
 __all__ = ["register", "register_as", "register_clazz_as_name"]
 
@@ -41,54 +43,42 @@ class Factory:
             assert isinstance(obj_config, dict)
             # get suggest anme
             suggest_name = f"objects_{idx}"
-            obj_name, new_obj = self.create_single_obj(obj_config, suggest_name)
+            obj_name = obj_config.get("name", suggest_name)
+            new_obj = self.create_single_obj(obj_config)
             # 保存顶层对象
             self._save_obj(obj_name, new_obj)
-            # 顶层object 可能拥有字段command
-            if "command" in obj_config.keys() and isinstance(obj_config["command"], str):
+            # 顶层object 可能拥有字段method
+            if "method" in obj_config.keys() and isinstance(obj_config["method"], str):
                 self._core_objs.append(new_obj)
         # 反转core对象
         self._core_objs.reverse()
-            
 
-    def create_single_obj(self, obj_config: dict, suggest_name):
-        obj_name = self._get_obj_name(obj_config, suggest_name)
+    def create_single_obj(self, obj_config: dict):
         obj_clazz = self._get_obj_clazz(obj_config)
         obj_args = self._get_obj_args(obj_config)
         new_obj = self._construct_obj(obj_clazz, obj_args)
         # 保存对象的初始化配置
         setattr(new_obj, "_init_config", obj_config)
-        return obj_name, new_obj
-
-    def _get_obj_name(self, obj_config: dict, suggest_name=None):
-        if "name" not in obj_config.keys():
-            if isinstance(suggest_name, str):
-                obj_config["name"] = suggest_name
-            else:
-                raise ValueError(
-                    f"can't match name for {obj_config}, no key name and suggest_name is not str {suggest_name}."
-                )
-        return obj_config["name"]
+        return new_obj
 
     def _get_obj_clazz(self, obj_config: dict):
         assert (
             "clazz" in obj_config.keys()
         ), f"no clazz in {obj_config} construct obj failed."
         clazz_name = obj_config["clazz"]
-        if clazz_name in self._name2clazz.keys():
+        if clazz_name in self._name2clazz:
             clazz = self._name2clazz[clazz_name]
         else:
-            raise KeyError(f"clazz {clazz_name} not register!")
+            raise ValueError(f"clazz '{clazz_name}' not register!")
         return clazz
 
     def _get_obj_args(self, obj_config: dict):
         args = list()
         args = obj_config.get("args", args)
-        obj_name = self._get_obj_name(obj_config)
-        args = self._preprocess_args(args, obj_name)
+        args = self._preprocess_args(args)
         return args
 
-    def _preprocess_args(self, args, father_name):
+    def _preprocess_args(self, args):
         # 参数args是一个list或dict容器，正则化容器元素
         if isinstance(args, list):
             args_iter = enumerate(args)
@@ -99,26 +89,15 @@ class Factory:
                 f"unexpected args type, expected list or dict, got {type(args)}"
             )
         for arg_key, arg_value in args_iter:
-            """
-            arg_value:
-            ["${item}"]
-            [{"name":..., "clazz":...}]
-            {"name":"${item}", "msg":"@@${item}.get_msg()@@"} # no clazz
-            {"clazz":"....", "args":""} # with clazz
-            """
             if isinstance(arg_value, dict):
                 if "clazz" in arg_value.keys():
                     # 有clazz走子对象构建
-                    sub_obj_name, arg_value = self.create_single_obj(
-                        arg_value, suggest_name=f"{father_name}.{arg_key}"
-                    )
+                    arg_value = self.create_single_obj(arg_value)
                 else:
                     # 没有则递归再处理此子元素，递归出口至所有元素都是非容器
-                    arg_value = self._preprocess_args(
-                        arg_value, f"{father_name}.{arg_key}"
-                    )
+                    arg_value = self._preprocess_args(arg_value)
             elif isinstance(arg_value, list):
-                arg_value = self._preprocess_args(arg_value, f"{father_name}.{arg_key}")
+                arg_value = self._preprocess_args(arg_value)
             elif isinstance(arg_value, str):
                 match = re.search(r"\${(.+?)}", str(arg_value))
                 if arg_value.count("@@") >= 2:
@@ -128,13 +107,16 @@ class Factory:
                 elif match:
                     # 直接替换
                     match_str = match.group(1)
-                    assert (
-                        match_str in self._name2obj.keys()
-                    ), f"{match_str} not found in objs_pool, this may caused by wrong words in json or wrong objs order. Be careful that father obj should in front."
+                    if not match_str in self._name2obj:
+                        raise KeyError(
+                            f"find ref object {match_str} failed, this may caused by"
+                            " wrong words in json or wrong objs order. Be careful that"
+                            " father obj should in front."
+                        )
                     arg_value = self._name2obj[match_str]
             args[arg_key] = arg_value
         return args
-    
+
     def _replace_place_holder_with_dict_get(self, command):
         # Define the regular expression pattern to match "${obj}"
         pattern = r"\${(.*?)}"
@@ -142,9 +124,11 @@ class Factory:
         # Define the replacement function
         def replace(match):
             obj_name = match.group(1)
-            if not obj_name in self._name2obj.keys():
+            if not obj_name in self._name2obj:
                 raise KeyError(
-                    f"{obj_name} not found in objs_pool, this may caused by wrong words in json or wrong objs order. Be careful that father obj should in front."
+                    f"{obj_name} not found in objs_pool, this may caused by wrong words"
+                    " in json or wrong objs order. Be careful that father obj should"
+                    " in front."
                 )
             return f"_name2obj.get('{obj_name}')"
             # return q_dict_name + "[" + obj + "]"
@@ -162,37 +146,72 @@ class Factory:
                 f"Only allowed one exec(...) in args value, got {command_str}"
             )
         sub = sub_commands[0]
-        sub = f"ret={sub}"
         exec_rst = dict()
         try:
-            exec(sub, {"_name2obj": self._name2obj}, exec_rst)
-        except Exception as e:
-            raise RuntimeError(f"exec sub command {sub} failed. msg:{e}") from e
-        if "ret" in exec_rst.keys():
+            exec(sub, {"_name2obj": self._name2obj}, exec_rst)  # pylint:disable=W0122
+        except Exception as error:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback_str = "".join(
+                traceback.format_exception(exc_type, exc_value, exc_traceback)
+            )
+            raise RuntimeError(
+                f"exec sub command '{sub}' failed. Exception:\n {traceback_str}"
+            ) from error
+        if "ret" in exec_rst:
             return exec_rst["ret"]
         else:
-            raise RuntimeError("Never run this line.")
-    
+            raise KeyError(
+                "ret is not set between @@@@, make sure set ret like: 'ret=None'"
+            )
+
     def _construct_obj(self, clazz, args):
         assert callable(clazz)
         if isinstance(args, list):
-            obj = clazz(*args)
+            try:
+                obj = clazz(*args)
+            except Exception as error:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback_str = "".join(
+                    traceback.format_exception(exc_type, exc_value, exc_traceback)
+                )
+                raise RuntimeError(
+                    f"construct clazz {clazz} with args {args} failed.  exception:\n"
+                    f" {traceback_str}"
+                ) from error
         elif isinstance(args, dict):
-            obj = clazz(**args)
+            try:
+                obj = clazz(**args)
+            except Exception as error:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback_str = "".join(
+                    traceback.format_exception(exc_type, exc_value, exc_traceback)
+                )
+                raise RuntimeError(
+                    f"construct clazz {clazz} with args {args} failed.  exception:\n"
+                    f" {traceback_str}"
+                ) from error
         else:
-            raise TypeError(f"construct obj expected args be list or dict, got {type(args)}")
+            raise TypeError(
+                f"construct obj expected args be list or dict, got {type(args)}"
+            )
         return obj
-    
+
     def _save_obj(self, obj_name, obj):
-        if obj_name not in self._name2obj.keys():
-            self._name2obj[obj_name]  = obj
+        if obj_name not in self._name2obj:
+            self._name2obj[obj_name] = obj
         else:
-            raise RuntimeError(f"factory save obj failed. obj_name {obj_name} already been used by {self._name2obj[obj_name]}")
-        if obj not in self._obj2name.keys():
-            self._obj2name[obj]  = obj_name
+            raise RuntimeError(
+                f"factory save obj failed. obj_name {obj_name} already been used by"
+                f" {self._name2obj[obj_name]}"
+            )
+        if obj not in self._obj2name:
+            self._obj2name[obj] = obj_name
         else:
-            raise RuntimeError(f"factory save obj failed. obj {obj} already been saved with name {self._obj2name[obj]}")
-        
+            raise RuntimeError(
+                f"factory save obj failed. obj {obj} already been saved with name"
+                f" {self._obj2name[obj]}"
+            )
+
     def get_core_objs(self):
         return self._core_objs
 
@@ -200,43 +219,37 @@ class Factory:
         return self._name2clazz
 
     def register(self, name, clazz):
-        if name not in self._name2clazz.keys():
+        if not isinstance(name, str):
+            raise TypeError(
+                f"Not supported type {type(name)} for register, expected str"
+            )
+        if not callable(clazz):
+            raise AttributeError(f"register clazz expected callable:{clazz}")
+        if name not in self._name2clazz:
             self._name2clazz[name] = clazz
         else:
             raise RuntimeError(
-                f"register name '{name}' already been used by class {self._name2clazz[name]}"
+                f"register name '{name}' already been used by class"
+                f" {self._name2clazz[name]}"
             )
-        if clazz not in self._clazz2name.keys():
+        if clazz not in self._clazz2name:
             self._clazz2name[clazz] = name
         else:
             raise RuntimeError(
                 f"class '{clazz}' already register with name {self._clazz2name[clazz]}"
             )
 
-    def print_register_clazzs(self):
-        print("=============name:clazz=============")
-        for name, clazz in self._name2clazz.items():
-            print(f"{name}  :  {clazz}")
-        print("====================================")
-
-
-def register(obj):
-    factory = Factory()
-    if inspect.isclass(obj):
-        module_name = inspect.getmodule(obj).__name__
-        register_name = f"{module_name}.{obj.__name__}"
-        factory.register(register_name, obj)
-        return obj
-    else:
-        raise RuntimeError(f"Not supported type {type(obj)} for register")
-
 
 def register_clazz_as_name(clazz, name):
     factory = Factory()
-    if isinstance(name, str):
-        factory.register(name, clazz)
-    else:
-        raise RuntimeError(f"Not supported type {type(name)} to register")
+    factory.register(name, clazz)
+
+
+def register(obj):
+    module_name = inspect.getmodule(obj).__name__
+    register_name = f"{module_name}.{obj.__name__}"
+    register_clazz_as_name(obj, register_name)
+    return obj
 
 
 def register_module_clazzs(module, top_name):
@@ -249,12 +262,9 @@ def register_module_clazzs(module, top_name):
 
 def register_as(name):
     factory = Factory()
-    if isinstance(name, str):
 
-        def inside(clazz):
-            factory.register(name, clazz)
-            return clazz
+    def inside(clazz):
+        factory.register(name, clazz)
+        return clazz
 
-        return inside
-    else:
-        raise RuntimeError(f"Not supported type {type(name)} to register")
+    return inside

@@ -1,11 +1,11 @@
-from fdl._factory import Factory
-from fdl._common import Logger
-from fdl.utils import gen_clazz_example_obj
-from copy import deepcopy
 import json
+from copy import deepcopy
+
+from fdl._factory import Factory
+from fdl._utils import gen_clazz_example_obj
 
 FDL_JSON = {
-    "program": {"name": "MyProgram", "saved_path": "./fdl_space"},
+    "task": {"name": "MyTask", "saved_path": "./fdl_space"},
     "objects": [],
 }
 
@@ -17,7 +17,6 @@ def parse_args(args):
 
 
 def gen_json(args):
-    logging = Logger()
     clazzs, output_path = parse_args(args)
     factory = Factory()
     name2clazz = factory.get_name2clazz()
@@ -37,9 +36,7 @@ def gen_json(args):
             obj_config["clazz"] = obj_clazz
             output_json["objects"].append(obj_config)
         else:
-            logging.warning(
-                f"can't find {clazz_name} in factory, won't dump it to json."
-            )
+            print(f"can't find {clazz_name} in factory, won't dump it to json.")
     with open(output_path, "w") as file:
         json.dump(output_json, file, indent=4)
-    logging.info(f"saved gen json to {output_path}")
+    print(f"saved gen json to {output_path}")

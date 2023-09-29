@@ -1,6 +1,7 @@
 import argparse
+
 import fdl._core as _core
-from fdl.utils import bind
+from fdl._utils import bind
 
 __FDL_VERSION__ = "0.0.1"
 
@@ -78,9 +79,17 @@ class TerminalParser:
             help="show all modules registered, or detail info about some modules.",
         )
         show_parser.add_argument(
-            "clazzs",
-            nargs="*",
-            help="modules you want to show detail info. if not set, show all registered modules' name",
+            "clazz",
+            type=str,
+            default="",
+            help="module you want to show detail info. if not set, show all registered modules' name",
+        )
+        show_parser.add_argument(
+            "-v",
+            "--verbose",
+            default=False,
+            action="store_true",
+            help="module you want to show detail info. if not set, show all registered modules' name",
         )
         show_parser.add_argument(
             "-b",
@@ -109,12 +118,16 @@ def main():
         show_version()
         return
     # try binding temp modules
-    if hasattr(args, "bind"):
+    if hasattr(args, "bind") and args.bind is not None:
         for bind_path in args.bind:
             bind(bind_path)
-    if hasattr(args, "func"):
+    if hasattr(args, "func") and args.func is not None:
         import fdl.modules
 
         args.func(args)
     else:
         parser.print_help()
+
+
+if __name__ == "__main__":
+    main()

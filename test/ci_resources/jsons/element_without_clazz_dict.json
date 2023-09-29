@@ -1,0 +1,12 @@
+{
+    "task": {
+        "name": "MyTask",
+        "saved_path": "./fdl_space"
+    },
+    "objects": [
+        {
+            "name": "without_clazz",
+            "args": []
+        }
+    ]
+}

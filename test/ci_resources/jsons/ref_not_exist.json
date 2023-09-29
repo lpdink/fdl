@@ -1,0 +1,18 @@
+[
+    {
+        "clazz": "Node",
+        "method": "print_id",
+        "args": {
+            "uid": 0,
+            "children": [
+                {
+                    "clazz": "Node",
+                    "args": {
+                        "uid": 1
+                    }
+                },
+                "${node2}"
+            ]
+        }
+    }
+]

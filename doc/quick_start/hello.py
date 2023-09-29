@@ -1,5 +1,6 @@
 from fdl import register_as
 
+
 @register_as("SayMsgClass")
 class SayMsg:
     def __init__(self, msg):
