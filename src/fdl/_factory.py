@@ -57,8 +57,12 @@ class Factory:
         obj_clazz = self._get_obj_clazz(obj_config)
         obj_args = self._get_obj_args(obj_config)
         new_obj = self._construct_obj(obj_clazz, obj_args)
-        # 保存对象的初始化配置
-        setattr(new_obj, "_init_config", obj_config)
+        # 尝试保存对象的初始化配置。
+        # 当对象重写了__setattr__方法时，不一定能成功，不成功就放过。(例如NoneType)
+        try:
+            setattr(new_obj, "_init_config", obj_config)
+        except:
+            pass
         return new_obj
 
     def _get_obj_clazz(self, obj_config: dict):
