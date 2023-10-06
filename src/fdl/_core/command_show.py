@@ -28,11 +28,12 @@ def parse_args(args):
 def show(args):
     input_clazz, verbose = parse_args(args)
     factory = Factory()
-    name2clazz = factory.get_name2clazz()
+    name2clazz = [(name, clazz) for name, clazz in factory.get_name2clazz().items()]
+    name2clazz = sorted(name2clazz)
     if not verbose:
         print("=============name:clazz=============")
 
-    for key, value in name2clazz.items():
+    for key, value in name2clazz:
         if input_clazz in key:
             if verbose:
                 print_module_v(value, key)
