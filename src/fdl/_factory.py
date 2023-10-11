@@ -30,7 +30,7 @@ class Factory:
         self._name2clazz = dict()
         self._clazz2name = dict()
         self._name2obj = dict()
-        self._obj2name = dict()
+        # self._obj2name = dict()
         self._core_objs = list()
         Factory.init = True
 
@@ -208,13 +208,13 @@ class Factory:
                 f"factory save obj failed. obj_name {obj_name} already been used by"
                 f" {self._name2obj[obj_name]}"
             )
-        if obj not in self._obj2name:
-            self._obj2name[obj] = obj_name
-        else:
-            raise RuntimeError(
-                f"factory save obj failed. obj {obj} already been saved with name"
-                f" {self._obj2name[obj]}"
-            )
+        # if obj not in self._obj2name:
+        #     self._obj2name[obj] = obj_name
+        # else:
+        #     raise RuntimeError(
+        #         f"factory save obj failed. obj {obj} already been saved with name"
+        #         f" {self._obj2name[obj]}"
+        #     )
 
     def get_core_objs(self):
         return self._core_objs
